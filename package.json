@@ -23,5 +23,13 @@
   "license": "MIT",
   "engines": {
     "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "TODO: replace with your GitHub repo URL after creating it"
+  },
+  "homepage": "TODO: replace with your GitHub repo URL#readme",
+  "bugs": {
+    "url": "TODO: replace with your GitHub repo URL/issues"
   }
 }
