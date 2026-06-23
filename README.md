@@ -155,8 +155,8 @@ MIT — see [LICENSE](LICENSE)
 
 ## Links
 
-- **Repository**: _Add your GitHub repo URL here after publishing_
-- **Issues**: _Add `your-repo/issues` link here_
-- **Releases**: _Add `your-repo/releases` link here_
+- **Repository**: https://github.com/skyQ7-adnmin/wechat-miniapp-document-scanner
+- **Issues**: https://github.com/skyQ7-adnmin/wechat-miniapp-document-scanner/issues
+- **Releases**: https://github.com/skyQ7-adnmin/wechat-miniapp-document-scanner/releases
 - **v0.1.0 Release Notes**: [docs/release/v0.1.0.md](docs/release/v0.1.0.md)
 - **Roadmap Issues**: [docs/release/roadmap-issues.md](docs/release/roadmap-issues.md)

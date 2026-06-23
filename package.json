@@ -26,10 +26,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "TODO: replace with your GitHub repo URL after creating it"
+    "url": "git+https://github.com/skyQ7-adnmin/wechat-miniapp-document-scanner.git"
   },
-  "homepage": "TODO: replace with your GitHub repo URL#readme",
+  "homepage": "https://github.com/skyQ7-adnmin/wechat-miniapp-document-scanner#readme",
   "bugs": {
-    "url": "TODO: replace with your GitHub repo URL/issues"
+    "url": "https://github.com/skyQ7-adnmin/wechat-miniapp-document-scanner/issues"
   }
 }
