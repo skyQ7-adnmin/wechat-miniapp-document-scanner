@@ -8,7 +8,7 @@
     "test": "node --test tests/*.test.js",
     "check": "node -e \"require('./src/index.js');require('./src/detector/geometry');require('./src/detector/confidence');require('./src/crop/validate-points');require('./src/crop/coordinate-mapper');require('./src/runtime/task-controller');require('./src/runtime/timeout-controller');console.log('All modules OK')\"",
     "security": "node scripts/security-scan.js",
-    "ci": "npm run check && npm test && npm run security"
+    "ci": "node scripts/run-ci.js"
   },
   "keywords": [
     "wechat",

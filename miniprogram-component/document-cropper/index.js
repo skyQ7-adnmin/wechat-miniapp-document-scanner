@@ -53,6 +53,10 @@ Component({
   },
 
   methods: {
+    _emitError(message) {
+      this.triggerEvent("error", { message });
+    },
+
     _cropPointsObserver(points) {
       if (points && points.length === 4 && this._imagePoints) {
         this._imagePoints = [...points];
@@ -61,7 +65,15 @@ Component({
     },
 
     _initEditor() {
-      const { imageInfo, cropPoints } = this.properties;
+      const { imageInfo, cropPoints, src } = this.properties;
+      if (!imageInfo || !imageInfo.width || !imageInfo.height) {
+        this._emitError("imageInfo is required with valid width and height");
+        return;
+      }
+      if (!src) {
+        this._emitError("src is required (image file path)");
+        return;
+      }
       const points = cropPoints && cropPoints.length === 4
         ? [...cropPoints]
         : createDefaultCropPoints(imageInfo, 0.05);
@@ -222,6 +234,10 @@ Component({
     },
 
     exportCrop() {
+      if (!this._imagePoints || this._imagePoints.length !== 4) {
+        this._emitError("No valid crop points to export");
+        return Promise.reject(new Error("No valid crop points"));
+      }
       const box = {
         x: Math.round(Math.min(...this._imagePoints.map((p) => p.x))),
         y: Math.round(Math.min(...this._imagePoints.map((p) => p.y))),
@@ -232,7 +248,11 @@ Component({
       return new Promise((resolve, reject) => {
         const query = this.createSelectorQuery();
         query.select("#cropCanvas").fields({ node: true, size: true }).exec((res) => {
-          if (!res || !res[0]) return reject(new Error("Canvas not found"));
+          if (!res || !res[0]) {
+            const err = new Error("Canvas not found");
+            this._emitError(err.message);
+            return reject(err);
+          }
           const canvas = res[0].node;
           const ctx = canvas.getContext("2d");
           const img = canvas.createImage();
@@ -248,10 +268,10 @@ Component({
               destWidth: outW, destHeight: outH,
               fileType: "jpg", quality: 0.95,
               success: (r) => resolve({ tempFilePath: r.tempFilePath, width: outW, height: outH }),
-              fail: reject,
+              fail: (e) => { this._emitError("Canvas export failed"); reject(e); },
             });
           };
-          img.onerror = () => reject(new Error("Image load failed"));
+          img.onerror = () => { const err = new Error("Image load failed"); this._emitError(err.message); reject(err); };
           img.src = this.properties.src;
         });
       });
