@@ -1,0 +1,9 @@
+{
+  "pages": ["pages/scan-demo/scan-demo"],
+  "window": {
+    "navigationBarTitleText": "Document Scanner Demo",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black"
+  },
+  "sitemapLocation": "sitemap.json"
+}

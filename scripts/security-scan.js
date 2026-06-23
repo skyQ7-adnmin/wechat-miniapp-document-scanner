@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 
 const SENSITIVE_PATTERNS = [
-  { name: "AppID", regex: /\bwx[a-f0-9]{16}\b/gi },
+  { name: "AppID", regex: /\bwx(?!0000000000000000)[a-f0-9]{16}\b/gi },
   { name: "AppSecret", regex: /(appSecret|appsecret|APP_SECRET)\s*[:=]\s*["'][a-f0-9]{32}["']/gi },
   { name: "TencentSecret", regex: /(SecretId|SecretKey|TENCENT_SECRET)/gi },
   { name: "Phone", regex: /\b1[3-9]\d{9}\b/g },

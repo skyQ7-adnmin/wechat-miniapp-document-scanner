@@ -1,0 +1,15 @@
+name: Bug Report
+description: Report a bug in wechat-miniapp-document-scanner
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: Description
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: WeChat base library version
+  - type: textarea
+    attributes:
+      label: Steps to reproduce

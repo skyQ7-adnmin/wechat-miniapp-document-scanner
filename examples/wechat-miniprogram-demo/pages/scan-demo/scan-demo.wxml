@@ -1,0 +1,65 @@
+<!-- scan-demo.wxml — Document Scanner demo -->
+<view class="container">
+  <!-- Mode switch -->
+  <view class="toolbar">
+    <button size="mini" type="{{mode==='single'?'primary':'default'}}" data-mode="single" bindtap="switchMode">Single</button>
+    <button size="mini" type="{{mode==='multi'?'primary':'default'}}" data-mode="multi" bindtap="switchMode">Multi</button>
+  </view>
+
+  <!-- Current image -->
+  <block wx:if="{{currentSrc}}">
+    <view class="cropper-area">
+      <document-cropper
+        id="cropper"
+        src="{{currentSrc}}"
+        imageInfo="{{currentImageInfo}}"
+        cropPoints="{{cropPoints}}"
+        bind:ready="onCropperReady"
+        bind:detectstart="onDetectStart"
+        bind:detectcomplete="onDetectComplete"
+        bind:detectfallback="onDetectFallback"
+        bind:change="onCropperChange"
+        bind:crop="onCropperCrop"
+      />
+    </view>
+
+    <view class="actions">
+      <button size="mini" bindtap="chooseImage">Reselect</button>
+      <button size="mini" type="primary" bindtap="exportCropped">Export Crop</button>
+      <block wx:if="{{mode==='multi'}}">
+        <button size="mini" bindtap="addCurrentPage">Add Page</button>
+        <button size="mini" type="warn" bindtap="finishMultiPage">Finish ({{pages.length}})</button>
+      </block>
+    </view>
+  </block>
+
+  <!-- No image selected -->
+  <block wx:else>
+    <view class="empty-state">
+      <text class="empty-text">Select an image to begin</text>
+      <button type="primary" bindtap="chooseImage">Choose from Album</button>
+    </view>
+  </block>
+
+  <!-- Cropped result -->
+  <block wx:if="{{croppedSrc}}">
+    <view class="result">
+      <text class="result-title">Cropped Result</text>
+      <image class="result-image" src="{{croppedSrc}}" mode="widthFix" />
+    </view>
+  </block>
+
+  <!-- Multi-page gallery -->
+  <block wx:if="{{mode==='multi' && pages.length > 0}}">
+    <view class="gallery">
+      <text class="gallery-title">Pages ({{pages.length}})</text>
+      <scroll-view scroll-x class="gallery-scroll">
+        <view wx:for="{{pages}}" wx:key="index" class="gallery-item {{currentIndex===index?'active':''}}"
+              data-index="{{index}}" bindtap="selectPage">
+          <text>{{index + 1}}</text>
+          <text class="gallery-delete" data-index="{{index}}" catchtap="deletePage">×</text>
+        </view>
+      </scroll-view>
+    </view>
+  </block>
+</view>
