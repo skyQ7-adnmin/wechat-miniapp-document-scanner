@@ -1,5 +1,5 @@
 {
   "usingComponents": {
-    "document-cropper": "/miniprogram-component/document-cropper/index"
+    "document-cropper": "../../components/document-cropper/index"
   }
 }

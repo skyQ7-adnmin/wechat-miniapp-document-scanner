@@ -1,0 +1,16 @@
+{
+  "description": "Document Scanner Demo - replace appid with your own from WeChat MP console",
+  "packOptions": { "ignore": [] },
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": true,
+    "minified": false,
+    "newFeature": true
+  },
+  "compileType": "miniprogram",
+  "libVersion": "2.25.0",
+  "appid": "wx0000000000000000",
+  "projectname": "document-scanner-demo",
+  "miniprogramRoot": "./"
+}
