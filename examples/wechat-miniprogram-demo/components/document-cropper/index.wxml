@@ -1,35 +1,19 @@
-<!-- document-cropper — minimal debug version with fixed red box -->
 <view class="crop-stage">
-  <!-- image -->
   <image class="crop-img" src="{{src}}" mode="aspectFit" />
 
-  <!-- static diagnostic text -->
-  <view wx:if="{{diag}}" class="crop-diag">
-    <text>{{diag}}</text>
-  </view>
-
-  <!-- crop overlay: red border box -->
-  <view wx:if="{{overlayVisible}}"
-        class="crop-overlay"
+  <view wx:if="{{showOverlay}}"
+        class="crop-box"
         style="left:{{cropLeft}}px;top:{{cropTop}}px;width:{{cropW}}px;height:{{cropH}}px;">
     <view class="crop-move"
-          catchtouchstart="onCropTouchStart"
-          catchtouchmove="onCropTouchMove"
-          catchtouchend="onCropTouchEnd" />
-
-    <!-- corner handles -->
-    <view class="crop-corner crop-corner-tl"
-          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd"
-          data-index="0" />
-    <view class="crop-corner crop-corner-tr"
-          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd"
-          data-index="1" />
-    <view class="crop-corner crop-corner-br"
-          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd"
-          data-index="2" />
-    <view class="crop-corner crop-corner-bl"
-          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd"
-          data-index="3" />
+          catchtouchstart="onMoveStart" catchtouchmove="onMove" catchtouchend="onMoveEnd" />
+    <view class="corner corner-tl" data-index="0"
+          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd" />
+    <view class="corner corner-tr" data-index="1"
+          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd" />
+    <view class="corner corner-br" data-index="2"
+          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd" />
+    <view class="corner corner-bl" data-index="3"
+          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd" />
   </view>
 
   <canvas type="2d" id="cropCanvas" class="crop-canvas" />

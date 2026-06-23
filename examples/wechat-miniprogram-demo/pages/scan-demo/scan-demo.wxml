@@ -1,20 +1,46 @@
 <view class="page">
+  <view class="mode-bar">
+    <button size="mini" type="{{mode==='single'?'primary':'default'}}" data-mode="single" bindtap="switchMode">Single</button>
+    <button size="mini" type="{{mode==='multi'?'primary':'default'}}" data-mode="multi" bindtap="switchMode">Multi</button>
+  </view>
+
   <view class="cropper-wrap">
-    <document-cropper
-      id="cropper"
-      src="{{src}}"
-      imageInfo="{{imageInfo}}"
-      bind:ready="onCropReady"
-      bind:crop="onCrop"
-    />
+    <document-cropper id="cropper" src="{{src}}" imageInfo="{{imageInfo}}" />
   </view>
 
-  <view class="bar">
-    <button size="mini" bindtap="chooseImage">Choose Image</button>
-    <button size="mini" type="primary" bindtap="exportCrop">Export Crop</button>
+  <view class="actions">
+    <button size="mini" bindtap="chooseImage">{{src ? 'Reselect' : 'Choose Image'}}</button>
+    <button size="mini" type="primary" bindtap="exportCurrent">Export Crop</button>
+    <block wx:if="{{mode==='multi'}}">
+      <button size="mini" bindtap="addPage">Add Page</button>
+      <button size="mini" type="warn" bindtap="exportAll">Export All ({{pages.length}})</button>
+    </block>
   </view>
 
-  <view wx:if="{{exportStatus}}" class="status">{{exportStatus}}</view>
+  <view wx:if="{{exportMsg}}" class="status">{{exportMsg}}</view>
 
-  <image wx:if="{{croppedSrc}}" class="result" src="{{croppedSrc}}" mode="widthFix" />
+  <view wx:if="{{croppedSrc}}" class="result-block">
+    <text class="result-title">Cropped Result</text>
+    <image class="result-img" src="{{croppedSrc}}" mode="widthFix" />
+  </view>
+
+  <view wx:if="{{mode==='multi' && pages.length > 0}}" class="gallery">
+    <text class="gallery-title">Pages ({{pages.length}})</text>
+    <scroll-view scroll-x class="gallery-scroll">
+      <view wx:for="{{pages}}" wx:key="index"
+            class="thumb {{currentIndex===index?'active':''}}"
+            data-index="{{index}}" bindtap="selectPage">
+        <text class="thumb-num">{{index + 1}}</text>
+        <text wx:if="{{item.croppedPath}}" class="thumb-ok">✓</text>
+        <text class="thumb-del" data-index="{{index}}" catchtap="deletePage">×</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view wx:if="{{mode==='multi' && pages.length > 0}}" class="all-results">
+    <text class="result-title">Exported Results</text>
+    <view wx:for="{{pages}}" wx:key="index" wx:for-item="p">
+      <image wx:if="{{p.croppedPath}}" class="result-img" src="{{p.croppedPath}}" mode="widthFix" />
+    </view>
+  </view>
 </view>

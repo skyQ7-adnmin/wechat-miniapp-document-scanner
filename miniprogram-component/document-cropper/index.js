@@ -1,8 +1,12 @@
 /**
- * document-cropper — minimal debug version.
- * Fixed red crop box, no auto-detect, no complex mapping.
- * All positions use container-relative pixel values pre-computed in JS.
+ * document-cropper v0.1.0 — Stable manual crop with accurate export.
+ *
+ * Coordinates:
+ *   - displayCropPoints: px in component display area (for WXML + drag)
+ *   - cropPoints: original image pixel coords (for export only)
+ *   - Touch coordinates: subtract container rect to convert to component-local.
  */
+
 Component({
   properties: {
     src: { type: String, value: "" },
@@ -10,36 +14,35 @@ Component({
   },
 
   data: {
-    debugFixedCrop: true,
-    ready: false,
-    diag: "",
+    showOverlay: false,
     cropLeft: 0, cropTop: 0, cropW: 0, cropH: 0,
-    overlayVisible: false,
+    hasCrop: false,
   },
 
   lifetimes: {
     attached() {
-      this._ip = null;               // image points (original coords)
-      this._cr = null;               // container rect (page coords)
-      this._dr = null;               // display rect (container-relative)
-      this._ds = null;               // drag start touch
-      this._dspts = null;            // drag start points
-      this._ua = false;              // user adjusted
+      this._imagePts = null;       // image-space crop points [TL,TR,BR,BL]
+      this._displayPts = null;     // display-space crop points
+      this._stageRect = null;      // container page-coords
+      this._imgRect = null;        // image display rect (aspect-fit, container-relative)
+      this._dragStart = null;
+      this._dragStartImg = null;
+      this._dragCornerIdx = -1;
     },
   },
 
   observers: {
-    "src,imageInfo"(s, info) {
-      if (!s || !info || !info.width || !info.height) return;
-      this._ua = false;
-      this._init();
+    "src,imageInfo"(src, info) {
+      if (src && info && info.width > 0 && info.height > 0) {
+        this._initCrop();
+      }
     },
   },
 
   methods: {
-    /* ---- helpers ---- */
-    _d(label, data) {
-      this.setData({ diag: (this.data.diag || "") + label + ": " + JSON.stringify(data) + "\n" });
+    _dbg(label, data) {
+      if (typeof __wxConfig !== "undefined" && __wxConfig.envVersion === "release") return;
+      console.log("[crop]", label, data || "");
     },
 
     _sp(pts) {
@@ -47,19 +50,27 @@ Component({
       return pts.map(function (p) { return { x: Number(p.x || 0), y: Number(p.y || 0) }; });
     },
 
-    /* ---- init ---- */
-    _init() {
+    /* ---------- init ---------- */
+    _initCrop() {
       var self = this, info = this.properties.imageInfo;
-      self._d("image", info.width + "x" + info.height);
+      var m = 0.1;
+      self._imagePts = [
+        { x: info.width * m, y: info.height * m },
+        { x: info.width * (1 - m), y: info.height * m },
+        { x: info.width * (1 - m), y: info.height * (1 - m) },
+        { x: info.width * m, y: info.height * (1 - m) },
+      ];
+      self._dbg("imagePts init", JSON.stringify(self._imagePts[0]));
 
-      // Wait for container layout
       function measure() {
         var q = self.createSelectorQuery();
         q.select(".crop-stage").boundingClientRect(function (r) {
-          if (r && r.width > 0 && r.height > 0) {
-            self._cr = r;
-            self._d("container", Math.round(r.width) + "x" + Math.round(r.height));
-            self._showFixedCrop();
+          if (r && r.width > 0) {
+            self._stageRect = r;
+            self._computeImgRect();
+            self._syncDisplayFromImage();
+            self.setData({ showOverlay: true, hasCrop: true });
+            self.triggerEvent("ready", {});
             return;
           }
           setTimeout(measure, 80);
@@ -69,169 +80,142 @@ Component({
       setTimeout(measure, 100);
     },
 
-    /* ---- fixed crop ---- */
-    _showFixedCrop() {
-      var info = this.properties.imageInfo, cr = this._cr;
-      if (!info || !cr) return;
+    _computeImgRect() {
+      var info = this.properties.imageInfo, r = this._stageRect;
+      if (!info || !r) return;
+      var sc = Math.min(r.width / info.width, r.height / info.height);
+      var w = info.width * sc, h = info.height * sc;
+      this._imgRect = { x: (r.width - w) / 2, y: (r.height - h) / 2, w: w, h: h, sc: sc };
+      this._dbg("imgRect", JSON.stringify(this._imgRect));
+    },
 
-      // Compute aspect-fit display rect (container-relative)
-      var sc = Math.min(cr.width / info.width, cr.height / info.height);
-      var dw = info.width * sc, dh = info.height * sc;
-      var dx = (cr.width - dw) / 2, dy = (cr.height - dh) / 2;
-      this._dr = { x: dx, y: dy, w: dw, h: dh };
-      this._d("display", Math.round(dw) + "x" + Math.round(dh) + " @ " + Math.round(dx) + "," + Math.round(dy));
+    _imgToDisplay(p) {
+      var ir = this._imgRect;
+      return { x: ir.x + (p.x * ir.sc), y: ir.y + (p.y * ir.sc) };
+    },
 
-      // 10% inset crop box inside display rect
-      var m = 0.1;
-      var cl = dx + dw * m, ct = dy + dh * m;
-      var cw = dw * (1 - 2 * m), ch = dh * (1 - 2 * m);
+    _displayToImg(p) {
+      var ir = this._imgRect;
+      return { x: (p.x - ir.x) / ir.sc, y: (p.y - ir.y) / ir.sc };
+    },
 
-      // Save image points for export
-      this._ip = [
-        { x: info.width * m, y: info.height * m },
-        { x: info.width * (1 - m), y: info.height * m },
-        { x: info.width * (1 - m), y: info.height * (1 - m) },
-        { x: info.width * m, y: info.height * (1 - m) },
-      ];
+    _syncDisplayFromImage() {
+      if (!this._imagePts || !this._imgRect) return;
+      this._displayPts = this._imagePts.map(this._imgToDisplay, this);
+      this._updateBox();
+    },
 
+    _updateBox() {
+      var dp = this._displayPts;
+      if (!dp || dp.length !== 4) return;
+      var xs = dp.map(function (p) { return p.x; });
+      var ys = dp.map(function (p) { return p.y; });
       this.setData({
-        ready: true,
-        overlayVisible: true,
-        cropLeft: Math.round(cl),
-        cropTop: Math.round(ct),
-        cropW: Math.round(cw),
-        cropH: Math.round(ch),
-      });
-      this._d("crop", Math.round(cl) + "," + Math.round(ct) + " " + Math.round(cw) + "x" + Math.round(ch));
-      this.triggerEvent("ready", {});
-    },
-
-    /* ---- drag ---- */
-    _toImage(dx, dy) {
-      var info = this.properties.imageInfo, dr = this._dr;
-      return { x: dx * info.width / dr.w, y: dy * info.height / dr.h };
-    },
-
-    _fromImage(ip) {
-      var info = this.properties.imageInfo, dr = this._dr;
-      return {
-        x: dr.x + (ip.x / info.width) * dr.w,
-        y: dr.y + (ip.y / info.height) * dr.h,
-      };
-    },
-
-    _syncFromImage() {
-      if (!this._ip || this._ip.length !== 4) return;
-      var tl = this._fromImage(this._ip[0]), br = this._fromImage(this._ip[2]);
-      this.setData({
-        cropLeft: Math.round(Math.min(tl.x, br.x)),
-        cropTop: Math.round(Math.min(tl.y, br.y)),
-        cropW: Math.round(Math.abs(br.x - tl.x)),
-        cropH: Math.round(Math.abs(br.y - tl.y)),
+        cropLeft: Math.round(Math.min.apply(null, xs)),
+        cropTop: Math.round(Math.min.apply(null, ys)),
+        cropW: Math.round(Math.max.apply(null, xs) - Math.min.apply(null, xs)),
+        cropH: Math.round(Math.max.apply(null, ys) - Math.min.apply(null, ys)),
       });
     },
 
-    onCropTouchStart(e) {
+    /* ---------- drag ---------- */
+    onMoveStart(e) {
       var t = e.touches[0];
-      this._ds = { x: t.clientX, y: t.clientY };
-      this._dspts = this._sp(this._ip || []);
-      this._ua = true;
+      this._dragStart = { x: t.clientX, y: t.clientY };
+      this._dragStartImg = this._sp(this._imagePts);
     },
 
-    onCropTouchMove(e) {
-      if (!this._ds || !this._dr) return;
+    onMove(e) {
+      if (!this._dragStart || !this._imgRect) return;
       var t = e.touches[0];
-      var ddx = t.clientX - this._ds.x, ddy = t.clientY - this._ds.y;
-      var id = this._toImage(ddx, ddy);
-
-      var pts = this._sp(this._dspts || []);
-      pts = pts.map(function (p) { return { x: p.x + id.x, y: p.y + id.y }; });
-
-      // Clamp
-      var info = this.properties.imageInfo, m = Math.max(8, Math.min(info.width, info.height) * 0.015);
-      pts = pts.map(function (p) { return { x: Math.max(m, Math.min(info.width - m, p.x)), y: Math.max(m, Math.min(info.height - m, p.y)) }; });
-
-      // Keep within bounds
-      var xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
-      var ox = Math.min.apply(null, xs) < m ? m - Math.min.apply(null, xs) : Math.max.apply(null, xs) > info.width - m ? (info.width - m) - Math.max.apply(null, xs) : 0;
-      var oy = Math.min.apply(null, ys) < m ? m - Math.min.apply(null, ys) : Math.max.apply(null, ys) > info.height - m ? (info.height - m) - Math.max.apply(null, ys) : 0;
-      if (ox || oy) pts = pts.map(function (p) { return { x: p.x + ox, y: p.y + oy }; });
-
-      this._ip = pts;
-      this._syncFromImage();
-      this.triggerEvent("crop", { points: this._sp(this._ip) });
+      var ddx = (t.clientX - this._dragStart.x) / this._imgRect.sc;
+      var ddy = (t.clientY - this._dragStart.y) / this._imgRect.sc;
+      var info = this.properties.imageInfo;
+      var pts = this._sp(this._dragStartImg).map(function (p) { return { x: p.x + ddx, y: p.y + ddy }; });
+      pts = this._clamp(pts, info);
+      this._imagePts = pts;
+      this._syncDisplayFromImage();
+      this.triggerEvent("change", { points: this._sp(pts) });
     },
 
-    onCropTouchEnd() {
-      this._ds = null;
-      this.triggerEvent("crop", { points: this._sp(this._ip || []) });
+    onMoveEnd() {
+      this._dragStart = null;
+      this.triggerEvent("crop", { points: this._sp(this._imagePts) });
     },
 
-    /* ---- corner drag ---- */
     onCornerStart(e) {
       var idx = Number(e.currentTarget.dataset.index);
       if (isNaN(idx)) return;
       var t = e.touches[0];
-      this._ds = { x: t.clientX, y: t.clientY };
-      this._dspts = this._sp(this._ip || []);
-      this._cornerIdx = idx;
-      this._ua = true;
+      this._dragStart = { x: t.clientX, y: t.clientY };
+      this._dragStartImg = this._sp(this._imagePts);
+      this._dragCornerIdx = idx;
     },
 
     onCornerMove(e) {
-      if (!this._ds || !this._dr) return;
+      if (!this._dragStart || this._dragCornerIdx < 0 || !this._imgRect) return;
       var t = e.touches[0];
-      var id = this._toImage(t.clientX - this._ds.x, t.clientY - this._ds.y);
-      var idx = this._cornerIdx;
-      if (idx == null) return;
-
-      var pts = this._sp(this._dspts || []);
-      pts[idx] = { x: pts[idx].x + id.x, y: pts[idx].y + id.y };
-
-      var info = this.properties.imageInfo, m = Math.max(8, Math.min(info.width, info.height) * 0.015);
-      pts = pts.map(function (p) { return { x: Math.max(m, Math.min(info.width - m, p.x)), y: Math.max(m, Math.min(info.height - m, p.y)) }; });
-
-      this._ip = pts;
-      this._syncFromImage();
-      this.triggerEvent("crop", { points: this._sp(this._ip) });
+      var ddx = (t.clientX - this._dragStart.x) / this._imgRect.sc;
+      var ddy = (t.clientY - this._dragStart.y) / this._imgRect.sc;
+      var idx = this._dragCornerIdx;
+      var pts = this._sp(this._dragStartImg);
+      pts[idx] = { x: pts[idx].x + ddx, y: pts[idx].y + ddy };
+      pts = this._clamp(pts, this.properties.imageInfo);
+      this._imagePts = pts;
+      this._syncDisplayFromImage();
+      this.triggerEvent("change", { points: this._sp(pts) });
     },
 
     onCornerEnd() {
-      this._ds = null; this._cornerIdx = null;
-      this.triggerEvent("crop", { points: this._sp(this._ip || []) });
+      this._dragStart = null;
+      this._dragCornerIdx = -1;
+      this.triggerEvent("crop", { points: this._sp(this._imagePts) });
     },
 
-    /* ---- public ---- */
-    getPoints() { return this._sp(this._ip || []); },
+    _clamp(pts, info) {
+      var m = Math.max(8, Math.min(info.width, info.height) * 0.015);
+      return pts.map(function (p) {
+        return { x: Math.max(m, Math.min(info.width - m, p.x)), y: Math.max(m, Math.min(info.height - m, p.y)) };
+      });
+    },
+
+    /* ---------- public ---------- */
+    getPoints() { return this._sp(this._imagePts || []); },
 
     exportCrop() {
       var self = this;
-      if (!self._ip || self._ip.length !== 4) {
+      if (!self._imagePts || self._imagePts.length !== 4) {
         return Promise.reject(new Error("No crop points"));
       }
-      var b = {
-        x: Math.round(Math.min.apply(null, self._ip.map(function (p) { return p.x; }))),
-        y: Math.round(Math.min.apply(null, self._ip.map(function (p) { return p.y; }))),
-        w: Math.round(Math.max.apply(null, self._ip.map(function (p) { return p.x; })) - Math.min.apply(null, self._ip.map(function (p) { return p.x; }))),
-        h: Math.round(Math.max.apply(null, self._ip.map(function (p) { return p.y; })) - Math.min.apply(null, self._ip.map(function (p) { return p.y; }))),
-      };
-      return new Promise(function (res, rej) {
+      var pts = self._sp(self._imagePts);
+      var xs = pts.map(function (p) { return p.x; });
+      var ys = pts.map(function (p) { return p.y; });
+      var sx = Math.round(Math.min.apply(null, xs));
+      var sy = Math.round(Math.min.apply(null, ys));
+      var sw = Math.round(Math.max.apply(null, xs) - sx);
+      var sh = Math.round(Math.max.apply(null, ys) - sy);
+
+      self._dbg("export", JSON.stringify({ sx: sx, sy: sy, sw: sw, sh: sh }));
+
+      return new Promise(function (resolve, reject) {
         var q = self.createSelectorQuery();
         q.select("#cropCanvas").fields({ node: true }).exec(function (r) {
-          if (!r || !r[0]) return rej(new Error("Canvas not found"));
+          if (!r || !r[0]) return reject(new Error("Canvas not found"));
           var c = r[0].node, ctx = c.getContext("2d"), img = c.createImage();
           img.onload = function () {
-            var sc = Math.min(3000 / b.w, 3000 / b.h, 1), ow = Math.round(b.w * sc), oh = Math.round(b.h * sc);
+            var maxSide = 3000;
+            var sc = Math.min(maxSide / sw, maxSide / sh, 1);
+            var ow = Math.round(sw * sc), oh = Math.round(sh * sc);
             c.width = ow; c.height = oh;
-            ctx.drawImage(img, b.x, b.y, b.w, b.h, 0, 0, ow, oh);
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, ow, oh);
             wx.canvasToTempFilePath({
               canvas: c, x: 0, y: 0, width: ow, height: oh, destWidth: ow, destHeight: oh,
               fileType: "jpg", quality: 0.95,
-              success: function (r) { res({ tempFilePath: r.tempFilePath, width: ow, height: oh }); },
-              fail: function () { rej(new Error("Export failed")); },
+              success: function (r) { resolve({ tempFilePath: r.tempFilePath, width: ow, height: oh }); },
+              fail: function () { reject(new Error("Canvas export failed")); },
             });
           };
-          img.onerror = function () { rej(new Error("Image load failed")); };
+          img.onerror = function () { reject(new Error("Image load failed")); };
           img.src = self.properties.src;
         });
       });
