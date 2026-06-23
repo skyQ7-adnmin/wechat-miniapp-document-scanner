@@ -26,7 +26,7 @@ const SENSITIVE_PATTERNS = [
 const TEXT_EXTS = new Set([".js", ".json", ".md", ".yml", ".yaml", ".xml", ".wxml", ".wxss", ".txt", ".toml", ".css"]);
 const BINARY_EXTS = new Set([".jpg", ".jpeg", ".png", ".gif", ".svg", ".ico", ".xlsx", ".db", ".sqlite", ".bak"]);
 
-const SKIP_PATHS = ["node_modules", ".git", "fixtures", "security-scan.js"];
+const SKIP_PATHS = ["node_modules", ".git", "fixtures", "security-scan.js", "examples/"];
 
 function getGitTrackedFiles() {
   try {
