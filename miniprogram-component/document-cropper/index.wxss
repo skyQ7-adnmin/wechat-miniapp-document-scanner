@@ -1,78 +1,18 @@
-/* document-cropper styles - WeChat Mini Program */
+.cropper-container{position:relative;width:100%;height:100%;overflow:hidden;background:#111;}
+.preview-image{width:100%;height:100%;}
 
-.cropper-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #000;
-}
+/* White crop lines, semi-transparent */
+.crop-line-t,.crop-line-b{position:absolute;height:3px;background:rgba(255,255,255,0.85);pointer-events:none;z-index:5;}
+.crop-line-l,.crop-line-r{position:absolute;width:3px;background:rgba(255,255,255,0.85);pointer-events:none;z-index:5;}
 
-.preview-image {
-  width: 100%;
-  height: 100%;
-}
+/* Subtle corner indicators — small white/black dots */
+.corner-handle{position:absolute;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.9);border:2px solid rgba(0,0,0,0.5);margin-left:-14px;margin-top:-14px;z-index:10;}
 
-/* Crop frame fill - light overlay, draggable */
-.crop-fill {
-  position: absolute;
-  background: rgba(46, 117, 182, 0.05);
-  z-index: 4;
-}
+/* Edge handles — invisible but large touch target */
+.edge-handle{position:absolute;z-index:6;}
+/* JS computes width/height per handle */
 
-/* Crop lines - blue, non-interactive */
-.crop-line {
-  position: absolute;
-  background: rgba(46, 117, 182, 0.92);
-  z-index: 5;
-  pointer-events: none;
-}
+/* Crop fill — barely visible, large tap area for move */
+.crop-fill{position:absolute;background:rgba(255,255,255,0.03);z-index:3;}
 
-.crop-line-top,
-.crop-line-bottom {
-  height: 5rpx;
-}
-
-.crop-line-left,
-.crop-line-right {
-  width: 5rpx;
-}
-
-/* Edge handles - wider touch area */
-.edge-handle {
-  position: absolute;
-  z-index: 6;
-}
-
-.edge-handle-top,
-.edge-handle-bottom {
-  height: 64rpx;
-  margin-top: -32rpx;
-}
-
-.edge-handle-left,
-.edge-handle-right {
-  width: 64rpx;
-  margin-left: -32rpx;
-}
-
-/* Corner handles - round blue dots */
-.corner-handle {
-  position: absolute;
-  width: 62rpx;
-  height: 62rpx;
-  border-radius: 50%;
-  background: #2e75b6;
-  border: 7rpx solid #fff;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.3);
-  z-index: 7;
-}
-
-/* Hidden canvas for export - offscreen, not visible */
-.hidden-canvas {
-  position: absolute;
-  left: -9999px;
-  top: -9999px;
-  width: 1px;
-  height: 1px;
-}
+.hidden-canvas{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;}
