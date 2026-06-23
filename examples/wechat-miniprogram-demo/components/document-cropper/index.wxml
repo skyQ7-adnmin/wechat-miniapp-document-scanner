@@ -1,29 +1,36 @@
-<!-- document-cropper — All positions pre-computed in JS, no calc() or arithmetic in WXML -->
-<view class="cropper-container">
-  <image class="preview-image" src="{{src}}" mode="aspectFit" />
+<!-- document-cropper — minimal debug version with fixed red box -->
+<view class="crop-stage">
+  <!-- image -->
+  <image class="crop-img" src="{{src}}" mode="aspectFit" />
 
-  <!-- Crop lines: pre-computed style strings in cropLines.topStyle etc. -->
-  <view wx:if="{{showOverlay}}" class="crop-line-t" style="{{cropLines.topStyle}}" />
-  <view wx:if="{{showOverlay}}" class="crop-line-b" style="{{cropLines.bottomStyle}}" />
-  <view wx:if="{{showOverlay}}" class="crop-line-l" style="{{cropLines.leftStyle}}" />
-  <view wx:if="{{showOverlay}}" class="crop-line-r" style="{{cropLines.rightStyle}}" />
+  <!-- static diagnostic text -->
+  <view wx:if="{{diag}}" class="crop-diag">
+    <text>{{diag}}</text>
+  </view>
 
-  <!-- Corner handles: pre-computed style strings in cornerStyles[0..3] -->
-  <view wx:if="{{showOverlay}}" wx:for="{{cornerStyles}}" wx:key="index"
-        class="corner-handle" style="{{item}}"
-        catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd"
-        data-mode="corner" data-index="{{index}}" />
+  <!-- crop overlay: red border box -->
+  <view wx:if="{{overlayVisible}}"
+        class="crop-overlay"
+        style="left:{{cropLeft}}px;top:{{cropTop}}px;width:{{cropW}}px;height:{{cropH}}px;">
+    <view class="crop-move"
+          catchtouchstart="onCropTouchStart"
+          catchtouchmove="onCropTouchMove"
+          catchtouchend="onCropTouchEnd" />
 
-  <!-- Edge handles: pre-computed style strings in edgeStyles[0..3] -->
-  <view wx:if="{{showOverlay}}" wx:for="{{edgeStyles}}" wx:key="index"
-        class="edge-handle" style="{{item}}"
-        catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd"
-        data-mode="edge" data-index="{{index}}" />
+    <!-- corner handles -->
+    <view class="crop-corner crop-corner-tl"
+          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd"
+          data-index="0" />
+    <view class="crop-corner crop-corner-tr"
+          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd"
+          data-index="1" />
+    <view class="crop-corner crop-corner-br"
+          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd"
+          data-index="2" />
+    <view class="crop-corner crop-corner-bl"
+          catchtouchstart="onCornerStart" catchtouchmove="onCornerMove" catchtouchend="onCornerEnd"
+          data-index="3" />
+  </view>
 
-  <!-- Move area: pre-computed style string -->
-  <view wx:if="{{showOverlay}}" class="crop-fill" style="{{cropRect.moveStyle}}"
-        catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd"
-        data-mode="move" />
-
-  <canvas type="2d" id="cropCanvas" class="hidden-canvas" />
+  <canvas type="2d" id="cropCanvas" class="crop-canvas" />
 </view>
