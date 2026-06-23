@@ -20,6 +20,7 @@
         bind:detectfallback="onDetectFallback"
         bind:change="onCropperChange"
         bind:crop="onCropperCrop"
+        bind:error="onCropperError"
       />
     </view>
 

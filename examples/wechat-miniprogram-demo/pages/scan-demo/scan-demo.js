@@ -1,7 +1,17 @@
 /**
- * scan-demo.js — Single & multi-page document scanning demo
+ * scan-demo.js — Single & multi-page document scanning demo.
  * No OCR, no server calls.
+ *
+ * IMPORTANT: Only serializable data (string/number/boolean/null/plain objects/arrays)
+ * is used in setData and passed to components. WeChat Mini Programs cannot clone
+ * functions, Error, Canvas, Map, Set, or circular references across the bridge.
  */
+
+/** Extract only serializable fields from wx.getImageInfo result */
+function safeImageInfo(raw) {
+  if (!raw) return null;
+  return { width: Number(raw.width || 0), height: Number(raw.height || 0) };
+}
 
 Page({
   data: {
@@ -14,113 +24,117 @@ Page({
     cropPoints: null,
   },
 
-  /* ---- Image selection ---- */
-
-  chooseImage() {
+  chooseImage: function () {
+    var self = this;
     wx.chooseImage({
       count: 1,
       sizeType: ["original"],
       sourceType: ["album"],
-      success: (res) => {
-        const path = res.tempFilePaths[0];
+      success: function (res) {
+        var path = res.tempFilePaths[0];
         wx.getImageInfo({
           src: path,
-          success: (info) => {
-            this.setData({ currentSrc: path, currentImageInfo: info, croppedSrc: "", cropPoints: null });
+          success: function (rawInfo) {
+            var info = safeImageInfo(rawInfo);
+            self.setData({ currentSrc: path, currentImageInfo: info, croppedSrc: "", cropPoints: null });
+          },
+          fail: function () {
+            wx.showToast({ title: "Failed to load image info", icon: "none" });
           },
         });
       },
     });
   },
 
-  /* ---- Crop events ---- */
-
-  onCropperReady(e) {
-    console.log("[cropper] ready");
+  onCropperReady: function () {
+    // ready — no detail needed
   },
 
-  onCropperCrop(e) {
-    this.setData({ cropPoints: e.detail.points });
+  onCropperCrop: function (e) {
+    if (e && e.detail && e.detail.points) {
+      this.setData({ cropPoints: e.detail.points });
+    }
   },
 
-  onCropperChange(e) {
-    this.setData({ cropPoints: e.detail.points });
+  onCropperChange: function (e) {
+    if (e && e.detail && e.detail.points) {
+      this.setData({ cropPoints: e.detail.points });
+    }
   },
 
-  onDetectStart() {
-    console.log("[detect] started");
+  onDetectStart: function () {},
+
+  onDetectComplete: function (e) {
+    if (e && e.detail && e.detail.points) {
+      this.setData({ cropPoints: e.detail.points });
+    }
   },
 
-  onDetectComplete(e) {
-    const { points, confidence } = e.detail;
-    console.log(`[detect] complete, confidence: ${(confidence * 100).toFixed(0)}%`);
-    this.setData({ cropPoints: points });
+  onDetectFallback: function () {},
+
+  onCropperError: function (e) {
+    var msg = (e && e.detail && e.detail.message) ? e.detail.message : "Cropper error";
+    console.error("[cropper error]", msg);
   },
 
-  onDetectFallback(e) {
-    console.log(`[detect] fallback: ${e.detail.reason}`);
-  },
-
-  /* ---- Export ---- */
-
-  exportCropped() {
-    const cropper = this.selectComponent("#cropper");
+  exportCropped: function () {
+    var cropper = this.selectComponent("#cropper");
     if (!cropper) {
       wx.showToast({ title: "Cropper not ready", icon: "none" });
       return;
     }
+    var self = this;
     wx.showLoading({ title: "Exporting..." });
-    cropper.exportCrop().then(({ tempFilePath }) => {
+    cropper.exportCrop().then(function (result) {
       wx.hideLoading();
-      this.setData({ croppedSrc: tempFilePath });
-    }).catch((err) => {
+      self.setData({ croppedSrc: result.tempFilePath });
+    }).catch(function (err) {
       wx.hideLoading();
       wx.showToast({ title: "Export failed", icon: "none" });
-      console.error(err);
+      console.error(String(err && err.message ? err.message : err));
     });
   },
 
-  /* ---- Multi-page ---- */
-
-  switchMode(e) {
-    const m = e.currentTarget.dataset.mode;
+  switchMode: function (e) {
+    var m = e.currentTarget.dataset.mode;
     this.setData({ mode: m, pages: [], currentSrc: "", currentImageInfo: null, croppedSrc: "" });
   },
 
-  addCurrentPage() {
-    const { currentSrc, currentImageInfo } = this.data;
+  addCurrentPage: function () {
+    var currentSrc = this.data.currentSrc;
+    var currentImageInfo = this.data.currentImageInfo;
     if (!currentSrc) {
       wx.showToast({ title: "Select an image first", icon: "none" });
       return;
     }
-    const pages = this.data.pages.concat([{ src: currentSrc, imageInfo: currentImageInfo }]);
-    this.setData({ pages, currentIndex: pages.length - 1 });
+    var pages = this.data.pages.concat([{ src: currentSrc, imageInfo: safeImageInfo(currentImageInfo) }]);
+    this.setData({ pages: pages, currentIndex: pages.length - 1 });
   },
 
-  finishMultiPage() {
+  finishMultiPage: function () {
     if (this.data.currentSrc) this.addCurrentPage();
-    wx.showToast({ title: `${this.data.pages.length} page(s) captured`, icon: "success" });
+    wx.showToast({ title: this.data.pages.length + " page(s) captured", icon: "success" });
   },
 
-  selectPage(e) {
-    const idx = Number(e.currentTarget.dataset.index);
+  selectPage: function (e) {
+    var idx = Number(e.currentTarget.dataset.index);
     if (isNaN(idx)) return;
-    const page = this.data.pages[idx];
+    var page = this.data.pages[idx];
     if (!page) return;
     this.setData({
       currentIndex: idx,
       currentSrc: page.src,
-      currentImageInfo: page.imageInfo,
+      currentImageInfo: safeImageInfo(page.imageInfo),
       croppedSrc: "",
       cropPoints: null,
     });
   },
 
-  deletePage(e) {
-    const idx = Number(e.currentTarget.dataset.index);
+  deletePage: function (e) {
+    var idx = Number(e.currentTarget.dataset.index);
     if (isNaN(idx)) return;
-    const pages = this.data.pages.filter((_, i) => i !== idx);
-    this.setData({ pages, currentIndex: Math.min(this.data.currentIndex, pages.length - 1) });
+    var pages = this.data.pages.filter(function (_, i) { return i !== idx; });
+    this.setData({ pages: pages, currentIndex: Math.min(this.data.currentIndex, pages.length - 1) });
     if (pages.length === 0) {
       this.setData({ currentSrc: "", currentImageInfo: null, croppedSrc: "" });
     }
