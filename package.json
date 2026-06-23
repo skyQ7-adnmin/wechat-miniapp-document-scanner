@@ -1,0 +1,23 @@
+{
+  "name": "wechat-miniapp-document-scanner",
+  "version": "0.1.0",
+  "description": "Document boundary detection, cropping UI, and image export for WeChat Mini Programs.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node -e \"require('./src/index.js'); console.log('src OK')\"",
+    "security-scan": "node scripts/security-scan.js"
+  },
+  "keywords": [
+    "wechat",
+    "miniprogram",
+    "document-scanner",
+    "crop",
+    "image-processing"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/wechat-miniapp-document-scanner.git"
+  }
+}

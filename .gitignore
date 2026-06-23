@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+
+# Databases and backups
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.bak-*
+*.db-wal
+*.db-shm
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build and cache
+.next/
+/dist/
+/out/
+/coverage/
+
+# Temp files
+*.tmp
+/tmp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Miniapp private config
+project.private.config.json
+project.config.json

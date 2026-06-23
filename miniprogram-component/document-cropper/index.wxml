@@ -1,0 +1,32 @@
+<!-- document-cropper component - WeChat Mini Program document cropping UI -->
+<view class="cropper-container">
+  <!-- Preview image -->
+  <image class="preview-image" src="{{src}}" mode="aspectFit" />
+
+  <!-- Crop frame fill (draggable area) -->
+  <view class="crop-fill" style="left:{{cropRect.left}};top:{{cropRect.top}};width:{{cropRect.width}};height:{{cropRect.height}}"
+        catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd" data-mode="move" />
+
+  <!-- Four crop lines (visual only) -->
+  <view class="crop-line crop-line-top" style="left:{{cropLines.top.left}};top:{{cropLines.top.top}};width:{{cropLines.top.width}}" />
+  <view class="crop-line crop-line-bottom" style="left:{{cropLines.bottom.left}};top:{{cropLines.bottom.top}};width:{{cropLines.bottom.width}}" />
+  <view class="crop-line crop-line-left" style="left:{{cropLines.left.left}};top:{{cropLines.left.top}};height:{{cropLines.left.height}}" />
+  <view class="crop-line crop-line-right" style="left:{{cropLines.right.left}};top:{{cropLines.right.top}};height:{{cropLines.right.height}}" />
+
+  <!-- Four edge handles (0=top, 1=bottom, 2=left, 3=right) -->
+  <view class="edge-handle edge-handle-top" style="left:{{cropRect.left}};top:{{cropRect.top}};width:{{cropRect.width}}"
+        catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd" data-mode="edge" data-index="0" />
+  <view class="edge-handle edge-handle-bottom" style="left:{{cropRect.left}};top:calc({{cropRect.top}} + {{cropRect.height}});width:{{cropRect.width}}"
+        catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd" data-mode="edge" data-index="1" />
+  <view class="edge-handle edge-handle-left" style="left:{{cropRect.left}};top:{{cropRect.top}};height:{{cropRect.height}}"
+        catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd" data-mode="edge" data-index="2" />
+  <view class="edge-handle edge-handle-right" style="left:calc({{cropRect.left}} + {{cropRect.width}});top:{{cropRect.top}};height:{{cropRect.height}}"
+        catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd" data-mode="edge" data-index="3" />
+
+  <!-- Four corner handles -->
+  <view wx:for="{{displayPoints}}" wx:key="index" class="corner-handle" style="left:{{item.x-31}}px;top:{{item.y-31}}px"
+        catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd" data-mode="corner" data-index="{{index}}" />
+
+  <!-- Hidden canvas for export -->
+  <canvas type="2d" id="cropCanvas" class="hidden-canvas" />
+</view>
